@@ -1,6 +1,8 @@
 package ads1ss12.pa;
 
 import java.util.HashSet;
+import java.util.TreeMap;
+import java.util.Map;
 
 /** @author Lorenz Leutgeb */
 public class KMST extends AbstractKMST {
@@ -18,7 +20,7 @@ public class KMST extends AbstractKMST {
 		// AVL-Tree to store Prim's results
 		// TODO: try a minimum heap with min() in O(1) instead of a
 		//       balanced tree (O(logn))
-		AvlTree roots = new AvlTree();
+		Map<Integer, Integer> roots = new TreeMap<Integer, Integer>();
 		
 		Edge[] edges = new Edge[this.edges.length];
 		int n, weight, relevantEdges, root, lowerBound = 0;;
@@ -66,13 +68,13 @@ public class KMST extends AbstractKMST {
 				set.add(solution[i]);
 			}
 			setSolution(weight, set);
-			roots.insert(weight, root);
+			roots.put(weight, root);
 		}
 		// now for the real business, let's do some Branch-and-Bound
-		while ((root = roots.poll()) != Integer.MIN_VALUE) {
+		for (int item : roots.values()) {
 			taken = new boolean[taken.length];
 			System.arraycopy(this.edges, 0, edges, 0, this.edges.length);
-			taken[root] = true;
+			taken[item] = true;
 			branchAndBound(edges, solution.length, 0, lowerBound);
 		}
 	}
@@ -195,194 +197,5 @@ public class KMST extends AbstractKMST {
 		
 		quickSort(left, i - 1);
 		quickSort(j + 1, right);
-	}
-	
-	private static class AvlTree {
-		private static class AvlNode {
-			public AvlNode left;
-			public AvlNode right;
-			public AvlNode parent;
-
-			public int key;
-			public int balance;
-			public int value;
-
-			public AvlNode(int k, int v) {
-				left = right = parent = null;
-				balance = 0;
-				key = k;
-				value = v;
-			}
-
-			@Override public String toString() {
-				return "[ " + key + "(" + value + ") ]";
-			}
-
-		}
-		
-		private AvlNode root;
-		
-		public void insert(int k, int v) {
-			if (root == null) {
-				root = new AvlNode(k, v);
-				return;
-			}
-
-			AvlNode n = this.root;
-
-			while (true) {
-				if (k < n.key) {
-					if (n.left == null) {
-						n.left = new AvlNode(k, v);
-						n.left.parent = n;
-						break;
-					}
-					else {
-						n = n.left;
-					}
-				}
-				else if (k > n.key) {
-					if (n.right == null) {
-						n.right = new AvlNode(k, v);
-						n.right.parent = n;
-						break;
-					}
-					else {
-						n = n.right;
-					}
-				}
-				else {
-					return;
-				}
-			}
-
-			balanceToRoot(n);
-		}
-
-		public AvlNode rotateLeft(AvlNode n) {
-			AvlNode m = n.right;
-			n.right = m.left;
-
-			if (n.right != null)
-				n.right.parent = n;
-
-			m.left = n;
-			n.parent = m;
-
-			n.balance = Math.max(height(n.left), height(n.right)) + 1;
-			m.balance = Math.max(height(m.left), height(m.right)) + 1;
-
-			return m;
-		}
-
-		public AvlNode rotateRight(AvlNode n) {
-			AvlNode m = n.left;
-			n.left = m.right;
-
-			if (n.left != null)
-				n.left.parent = n;
-
-			m.right = n;
-			n.parent = m;
-
-			n.balance = Math.max(height(n.left), height(n.right)) + 1;
-			m.balance = Math.max(height(m.left), height(m.right)) + 1;
-
-			return m;
-		}
-
-		public AvlNode doubleLeft(AvlNode n) {
-			AvlNode m = rotateRight(n.right);
-			m.parent = n;
-			n.right = m;
-			return rotateLeft(n);
-		}
-
-		public AvlNode doubleRight(AvlNode n) {
-			AvlNode m = rotateLeft(n.left);
-			m.parent = n;
-			n.left = m;
-			return rotateRight(n);
-		}
-
-		private void balanceToRoot(AvlNode n) {
-			if (n == null)
-				return;
-
-			AvlNode parent;
-			while (true) {
-				parent = n.parent;
-				n = balance(n);
-				n.parent = parent;
-
-				if (parent == null) {
-					root = n;
-					break;
-				}
-
-				if (n.key > parent.key)
-					parent.right = n;
-				else
-					parent.left = n;
-
-				n = parent;
-			}
-		}
-
-		private AvlNode balance(AvlNode n) {
-			if (height(n.right) - height(n.left) == -2) {
-				if (height(n.left.left) >= height(n.left.right))
-					n = rotateRight(n);
-				else
-					n = doubleRight(n);
-			}
-			else if (height(n.right) - height(n.left) == 2)
-				if (height(n.right.right) >= height(n.right.left))
-					n = rotateLeft(n);
-				else
-					n = doubleLeft(n);
-
-			n.balance = Math.max(height(n.left), height(n.right)) + 1;
-			return n;
-		}
-
-		private int height(AvlNode n) {
-			if (n == null)
-				return -1;
-			else
-				return n.balance;
-		}
-
-		public boolean isEmpty() {
-			return root == null;
-		}
-		
-		public int poll() {
-			if (root == null)
-				return Integer.MIN_VALUE;
-
-			AvlNode remove = root;
-
-			while (remove.left != null) remove = remove.left;
-
-			AvlNode m = remove.right;
-			
-			if (m != null) {
-				m.parent = remove.parent;
-			}
-			if (remove.parent == null) {
-				root = m;
-			}
-			else {
-				if (remove == remove.parent.left) {
-					remove.parent.left = m;
-				}
-				else {
-					remove.parent.right = m;
-				}
-			}
-			balanceToRoot(remove.parent);
-			return remove.value;
-		}
 	}
 }
